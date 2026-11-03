@@ -397,6 +397,24 @@ def start_srun_process(
             env_to_set={"NATS_SERVER": "nats://node1:4222"},
         )
     """
+    from .config import container_runtime
+
+    if container_runtime() == "host":
+        # The job already runs inside one sandbox built from the recipe's image and
+        # every step inherits it: no image, no mounts, no pyxis option of any kind.
+        if container_image:
+            logger.debug(
+                "container_runtime host: %s runs in the job's sandbox, not in %s",
+                step_name or command[0],
+                container_image,
+            )
+        container_image = None
+        container_mounts = None
+        if srun_options:
+            srun_options = {
+                key: value for key, value in srun_options.items() if not key.startswith(("container-", "no-container-"))
+            }
+
     srun_cmd = ["srun"]
 
     # ensures srun runs in the same job context

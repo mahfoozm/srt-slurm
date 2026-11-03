@@ -219,6 +219,21 @@ def _preflight_container(
             [issue],
         )
 
+    # Under container_runtime host the job's sandbox provides the environment and
+    # the alias only names it, so no file or registry is checked.
+    if (cluster_config or {}).get("container_runtime") == "host":
+        return (
+            PreflightResolution(
+                field="model.container",
+                raw=raw,
+                resolved=str(resolved),
+                source=source,
+                ok=True,
+                message=f"container_runtime host: {resolved} is not checked, the job's sandbox provides it",
+            ),
+            [],
+        )
+
     # Container image URIs (e.g. "nvcr.io/nvidia/sglang-runtime:0.8.1",
     # "vllm/vllm-openai:latest", "docker://...").
     if isinstance(raw, str) and _is_registry_uri(raw):

@@ -24,7 +24,7 @@ from ruamel.yaml.comments import CommentedMap
 
 from .lockfile import verify_lock_integrity
 from .roles import ROLE_NAMES
-from .schema import ClusterConfig, SrtConfig
+from .schema import CONTAINER_RUNTIMES, ClusterConfig, SrtConfig
 
 logger = logging.getLogger(__name__)
 
@@ -727,6 +727,23 @@ def get_srtslurm_setting(key: str, default: Any = None) -> Any:
     if cluster_config and key in cluster_config:
         return cluster_config[key]
     return default
+
+
+CONTAINER_RUNTIME_ENV = "SRTCTL_CONTAINER_RUNTIME"
+
+
+def container_runtime() -> str:
+    """Return how a step reaches its container, ``pyxis`` or ``host``.
+
+    The rendered sbatch script exports ``SRTCTL_CONTAINER_RUNTIME`` from the
+    srtslurm.yaml the job was submitted with, so the orchestrator on the compute
+    node follows the submit-time choice whatever cluster file its cwd finds.
+    Without the variable the cluster file decides, and without that, pyxis.
+    """
+    value = os.environ.get(CONTAINER_RUNTIME_ENV) or get_srtslurm_setting("container_runtime", "pyxis")
+    if value not in CONTAINER_RUNTIMES:
+        raise ValueError(f"container_runtime must be one of {', '.join(CONTAINER_RUNTIMES)}, not {value!r}")
+    return value
 
 
 def git_clone_command_prefix() -> list[str]:
